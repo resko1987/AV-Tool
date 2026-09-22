@@ -29,7 +29,22 @@ tools/backup_antivirus/
 php -m | grep -E 'zip|pdo_mysql|json|fileinfo'
 ```
 
-## 2. Настройка config.php
+## 2. Настройка
+### Секреты: .env
+Скопируйте пример и заполните свои значения:
+
+```bash
+cp .env.example .env
+chmod 600 .env
+```
+
+- `AV_WEB_USER` / `AV_WEB_PASS` — логин и пароль формы входа в веб-интерфейс.
+- `AV_WEB_ALLOWED_IPS` — белый список IP через запятую (пусто = любые).
+- `AV_DB_*` — доступы к БД для бэкапа/восстановления.
+
+Реальный `.env` в `.gitignore` — пароли не попадут в git.
+
+### config.php
 Откройте `config.php` и укажите:
 - `site_root` — корень сайта (по умолчанию на уровень выше `tools/`).
 - `db` — доступы к БД, пути к `mysqldump`/`mysql`.
