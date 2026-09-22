@@ -1,0 +1,16 @@
+{
+    "name": "cspeao/antivirus",
+    "description": "AV Tool — бэкап и антивирус сайта",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "AV\\": "src/"
+        },
+        "files": [
+            "src/Helpers.php"
+        ]
+    },
+    "require": {
+        "php": ">=7.4"
+    }
+}

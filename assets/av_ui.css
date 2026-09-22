@@ -1,0 +1,190 @@
+/* av_ui.css — тёмная тема для веб-интерфейса AV Tool (av.php / restore.php / docs.php) */
+:root{
+    --bg:#0b0f14;
+    --bg2:#10161f;
+    --panel:#121a25;
+    --panel2:#0e141d;
+    --border:#1f2b3a;
+    --border2:#2a3b52;
+    --text:#d7e1ec;
+    --muted:#8298ad;
+    --accent:#4cc2ff;
+    --accent2:#2f9be0;
+    --green:#3fd68c;
+    --yellow:#ffcc66;
+    --red:#ff6b6b;
+    --mono:'JetBrains Mono','Fira Mono',Consolas,'Courier New',monospace;
+    --sans:-apple-system,'Segoe UI',Roboto,'Inter',Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+    background:
+        radial-gradient(1200px 500px at 80% -10%, rgba(47,155,224,.12), transparent 60%),
+        radial-gradient(900px 420px at -10% 110%, rgba(63,214,140,.07), transparent 60%),
+        var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.65;
+    min-height:100vh;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- Топбар ---------- */
+.av-top{
+    background:rgba(13,19,27,.92);
+    border-bottom:1px solid var(--border);
+    padding:14px 24px 0;
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:blur(6px);
+}
+.av-top-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.av-logo{
+    display:flex;align-items:center;gap:10px;
+    font-weight:700;font-size:17px;color:#fff;letter-spacing:.3px;
+}
+.av-logo .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 8px rgba(63,214,140,.8);
+    flex:none;
+}
+.av-logo .dot.off{background:var(--red);box-shadow:0 0 8px rgba(255,107,107,.8)}
+.av-sub{color:var(--muted);font-size:12.5px;margin-left:auto;font-family:var(--mono)}
+.av-nav{display:flex;gap:4px;margin-top:12px;flex-wrap:wrap}
+.av-nav a{
+    padding:9px 16px;border-radius:8px 8px 0 0;
+    color:var(--muted);font-size:13.5px;font-weight:500;
+    border:1px solid transparent;border-bottom:none;
+    position:relative;top:1px;
+}
+.av-nav a:hover{color:var(--text);background:var(--panel);text-decoration:none}
+.av-nav a.on{
+    color:#fff;background:var(--panel);
+    border-color:var(--border);
+    box-shadow:inset 0 2px 0 var(--accent);
+}
+/* Спейсер: прижимает служебные вкладки (Настройки, Документация) вправо */
+.av-nav .av-nav-spacer{flex:1 1 auto;min-width:20px}
+/* Служебные вкладки — визуально отделены: пунктирный разделитель слева */
+.av-nav a.alt{margin-left:6px;padding-left:18px}
+.av-nav a.alt::before{
+    content:'';position:absolute;left:0;top:25%;bottom:25%;
+    width:1px;background:repeating-linear-gradient(180deg,var(--border2) 0 3px,transparent 3px 6px);
+}
+/* Кнопка Выход в верхней строке топбара */
+.av-user{display:flex;align-items:center;gap:14px;margin-left:auto}
+.av-user .av-user-host{
+    color:var(--muted);font-size:12.5px;font-family:var(--mono);
+    padding:5px 12px;border-radius:7px;
+    background:var(--panel2);border:1px solid var(--border);
+}
+.av-user .av-exit{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 16px;border-radius:7px;
+    background:linear-gradient(180deg,rgba(255,107,107,.18),rgba(255,107,107,.08));
+    border:1px solid rgba(255,107,107,.5);
+    color:#ff8f8f;font-size:12.5px;font-weight:700;
+    letter-spacing:.3px;
+    box-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+.av-user .av-exit::before{content:'⏻';font-size:13px;line-height:1}
+.av-user .av-exit:hover{background:var(--red);border-color:var(--red);color:#fff;text-decoration:none}
+
+/* ---------- Контент ---------- */
+.av-wrap{max-width:1100px;margin:0 auto;padding:26px 24px 60px}
+.av-page-title{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:4px 0 6px}
+.av-page-title h1{font-size:24px;margin:0;color:#fff;font-weight:700}
+.av-page-title .hint{color:var(--muted);font-size:13px}
+.av-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0}
+.av-card{
+    background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--border);
+    border-radius:12px;padding:16px 18px;
+}
+.av-card .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.av-card .v{font-size:16px;color:#fff;font-weight:600;font-family:var(--mono);word-break:break-all}
+.av-card .v.ok{color:var(--green)}
+.av-card .v.err{color:var(--red)}
+
+.av-panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    margin:16px 0;
+}
+.av-panel h2{margin:0 0 14px;font-size:17px;color:#fff;border-bottom:1px solid var(--border);padding-bottom:10px}
+.av-panel h3{margin:18px 0 10px;font-size:15px;color:#fff}
+
+/* ---------- Кнопки ---------- */
+.av-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.av-btn{
+    display:inline-block;padding:9px 18px;border-radius:8px;
+    background:var(--panel2);border:1px solid var(--border2);
+    color:var(--text);font-size:13.5px;font-weight:600;cursor:pointer;
+}
+.av-btn:hover{border-color:var(--accent2);color:#fff;text-decoration:none}
+.av-btn.primary{background:linear-gradient(180deg,var(--accent2),#1f7ab3);border-color:var(--accent2);color:#fff}
+.av-btn.primary:hover{filter:brightness(1.12)}
+.av-btn.danger{border-color:#6b2f2f;color:var(--red)}
+.av-btn.danger:hover{border-color:var(--red)}
+
+/* ---------- Таблицы ---------- */
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+th,td{border:1px solid var(--border);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:#fff;font-size:12.5px;text-transform:uppercase;letter-spacing:.6px}
+tr:hover td{background:rgba(76,194,255,.04)}
+td code,th code{white-space:nowrap}
+
+/* ---------- Таблица исключений CMS ---------- */
+table.cms-table{table-layout:fixed;margin:12px 0 0}
+table.cms-table th,
+table.cms-table td{overflow-wrap:anywhere;word-break:break-word}
+table.cms-table td code,
+table.cms-table th code{white-space:normal;word-break:break-all;display:inline-block;max-width:100%}
+table.cms-table td:first-child{width:16%}
+table.cms-table td:last-child{width:110px;text-align:right}
+table.cms-table td:last-child form{display:inline-block}
+
+/* ---------- Код / терминал ---------- */
+code{
+    background:rgba(0,0,0,.45);color:#9fe3b4;
+    padding:2px 6px;border-radius:5px;font-family:var(--mono);font-size:.9em;
+}
+pre{
+    background:#05080c;border:1px solid var(--border);
+    padding:14px 16px;border-radius:10px;overflow-x:auto;
+    font-family:var(--mono);font-size:13px;line-height:1.55;color:#c4d4e3;
+}
+pre code{background:none;padding:0;color:inherit}
+
+/* ---------- Бейджи ---------- */
+.b{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.b.ok{background:rgba(63,214,140,.12);color:var(--green);border:1px solid rgba(63,214,140,.4)}
+.b.warn{background:rgba(255,204,102,.1);color:var(--yellow);border:1px solid rgba(255,204,102,.4)}
+.b.err{background:rgba(255,107,107,.1);color:var(--red);border:1px solid rgba(255,107,107,.4)}
+.b.info{background:rgba(76,194,255,.1);color:var(--accent);border:1px solid rgba(76,194,255,.4)}
+
+/* ---------- Уведомления ---------- */
+.note{
+    border-radius:10px;padding:12px 16px;margin:14px 0;
+    font-size:14px;border:1px solid;
+}
+.note.warn{background:rgba(255,204,102,.06);border-color:rgba(255,204,102,.35);color:#e8d9a8}
+.note.err{background:rgba(255,107,107,.06);border-color:rgba(255,107,107,.35);color:#eab4b4}
+.note.info{background:rgba(76,194,255,.06);border-color:rgba(76,194,255,.3);color:#bfe3f5}
+
+/* ---------- Футер ---------- */
+.av-foot{
+    border-top:1px solid var(--border);margin-top:30px;padding:16px 0 0;
+    color:var(--muted);font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+}
+.av-foot .sep{opacity:.35}
+
+ol,ul{padding-left:22px}
+li{margin:5px 0}
+hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+@media(max-width:640px){.av-wrap{padding:18px 14px 40px}.av-top{padding:12px 14px 0}.av-user .av-user-host{display:none}}

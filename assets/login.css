@@ -1,0 +1,15 @@
+/* login.css — стили страницы входа */
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-box{width:100%;max-width:400px;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:14px;padding:34px 32px 28px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px}
+.login-logo .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(63,214,140,.8)}
+.login-logo span{font-weight:700;font-size:20px;color:#fff;letter-spacing:.3px}
+.login-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px}
+.flabel{display:block;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.7px;margin:14px 0 6px}
+.finput{width:100%;padding:11px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+.finput:focus{border-color:var(--accent2)}
+.login-btn{width:100%;margin-top:22px;padding:12px;border:none;border-radius:9px;background:linear-gradient(180deg,var(--accent2),#1f7ab3);color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;letter-spacing:.3px}
+.login-btn:hover{filter:brightness(1.12)}
+.login-err{margin-top:16px;padding:10px 14px;border-radius:9px;font-size:13.5px;background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.4);color:#eab4b4;text-align:center}
+.login-host{text-align:center;color:var(--muted);font-size:11.5px;margin-top:18px;font-family:var(--mono)}
+.hp{position:absolute;left:-9999px;top:-9999px;height:0;width:0;opacity:0;overflow:hidden}

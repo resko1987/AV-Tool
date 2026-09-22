@@ -1,0 +1,4 @@
+/* quarantine.css — стили страницы карантина */
+.qcode{max-height:600px;overflow:auto;font-size:12.5px}
+.qcode .ln{color:#4a5a6a;user-select:none;padding-right:14px;text-align:right;min-width:3.2em;display:inline-block}
+.msg{margin:14px 0}
