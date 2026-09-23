@@ -13,7 +13,10 @@ $msgType = $data['msgType'] ?? 'info';
 <?php if ($msg): ?><div class="note <?= $msgType === 'ok' ? 'info' : $msgType ?>"><?= $msg ?></div><?php endif; ?>
 
 <?php if ($action === 'restore' && $restoreOutput !== ''): ?>
-    <div class="note warn">Выполняется восстановление из <code><?= AV\e($stamp) ?></code>.</div>
+    <?php $hasErrors = strpos($restoreOutput, 'ОШИБК') !== false || strpos($restoreOutput, '! ') !== false; ?>
+    <div class="note <?= $hasErrors ? 'err' : 'ok' ?>"><?= $hasErrors
+        ? 'Восстановление завершено С ОШИБКАМИ — часть файлов не перезаписана (см. список ниже). Обычно причина — файл принадлежит другому пользователю (root) или снято право записи; исправьте владельца/права и повторите.'
+        : 'Восстановление из <code>' . AV\e($stamp) . '</code> выполнено.' ?></div>
     <div class="av-panel"><pre><?= $restoreOutput ?></pre></div>
     <div class="av-actions"><a class="av-btn" href="av.php?action=restore">← К списку бэкапов</a></div>
 <?php elseif (empty($backups)): ?>

@@ -38,13 +38,29 @@ class RestoreController
         if (($_GET['do'] ?? '') === 'restore' && isset($backups[$stamp])) {
             $b = $backups[$stamp];
             ob_start();
-            if (($what === 'all' || $what === 'files') && $b['files']) {
-                echo "Восстановление файлов...\n";
-                self::restoreFiles($b['files'], $CFG['site_root'], $log);
+            if ($what === 'all' || $what === 'files') {
+                if ($b['files']) {
+                    echo "Восстановление файлов...\n";
+                    $rf = self::restoreFiles($b['files'], $CFG['site_root'], $log);
+                    echo "  файлов в архиве: {$rf['total']}\n";
+                    echo "  восстановлено: {$rf['ok']}\n";
+                    if ($rf['skipped'] > 0) echo "  пропущено (небезопасные пути в архиве): {$rf['skipped']}\n";
+                    if ($rf['failed']) {
+                        echo "  ОШИБКИ (" . count($rf['failed']) . "):\n";
+                        foreach ($rf['failed'] as $p => $err) echo "    ! $p — $err\n";
+                    }
+                } else {
+                    echo "В этом бэкапе нет файлового архива.\n";
+                }
             }
-            if (($what === 'all' || $what === 'db') && $b['db']) {
-                echo "Восстановление БД...\n";
-                self::restoreDb($b['db'], $CFG['db'], $log);
+            if ($what === 'all' || $what === 'db') {
+                if ($b['db']) {
+                    echo "Восстановление БД...\n";
+                    $rd = self::restoreDb($b['db'], $CFG['db'], $log);
+                    echo $rd ? "  БД восстановлена.\n" : "  ОШИБКА: восстановить БД не удалось (подробности в журнале).\n";
+                } else {
+                    echo "В этом бэкапе нет дампа БД.\n";
+                }
             }
             echo "Готово.";
             $restoreOutput = ob_get_clean();
@@ -64,15 +80,85 @@ class RestoreController
         echo ob_get_clean();
     }
 
-    private static function restoreFiles(string $zipPath, string $root, Logger $log): bool
+    /**
+     * Пофайловое восстановление из zip в site_root.
+     *
+     * ZipArchive::extractTo() молча пропускает файлы, которые не может
+     * перезаписать (чужой владелец/права 444 и т.п.), и возвращает true —
+     * поэтому восстанавливаем каждый файл отдельно и честно считаем ошибки.
+     *
+     * @return array{total:int,ok:int,skipped:int,failed:array<string,string>}
+     */
+    private static function restoreFiles(string $zipPath, string $root, Logger $log): array
     {
-        if (!class_exists('ZipArchive') || !is_file($zipPath)) return false;
+        $stat = ['total' => 0, 'ok' => 0, 'skipped' => 0, 'failed' => []];
+        if (!class_exists('ZipArchive') || !is_file($zipPath)) {
+            $stat['failed'][$zipPath] = 'архив недоступен';
+            return $stat;
+        }
         $zip = new \ZipArchive();
-        if ($zip->open($zipPath) !== true) return false;
-        $ok = $zip->extractTo($root);
+        if ($zip->open($zipPath) !== true) {
+            $stat['failed'][$zipPath] = 'не удалось открыть архив';
+            return $stat;
+        }
+
+        $rootReal = @realpath($root) ?: rtrim($root, '/');
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entry = (string)$zip->getNameIndex($i);
+            $stat['total']++;
+
+            // защита от path traversal (../) и абсолютных путей в архиве
+            $norm = str_replace('\\', '/', $entry);
+            if ($norm === '' || $norm[0] === '/' || strpos($norm, '../') !== false || strpos($norm, '/..') !== false) {
+                $stat['skipped']++;
+                $log->warn("Восстановление: пропущен небезопасный путь в архиве: $entry");
+                continue;
+            }
+            if (substr($norm, -1) === '/') continue; // каталог
+
+            $dest = $root . '/' . $norm;
+            $dir = dirname($dest);
+            if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+                $stat['failed'][$norm] = 'не удалось создать каталог ' . dirname($norm);
+                continue;
+            }
+
+            // существующий файл с чужим владельцем или без права записи:
+            // пробуем снять read-only и перезаписать; иначе — copy+unlink
+            if (is_file($dest) && !is_writable($dest)) {
+                @chmod($dest, 0644);
+            }
+            $content = $zip->getFromIndex($i);
+            if ($content === false) {
+                $stat['failed'][$norm] = 'не удалось прочитать из архива';
+                continue;
+            }
+            if (@file_put_contents($dest, $content) !== false) {
+                @chmod($dest, 0644);
+                $stat['ok']++;
+                continue;
+            }
+            // fallback: copy поверх + удаление упрямого файла
+            $tmp = $dest . '.av_restore.tmp';
+            if (@file_put_contents($tmp, $content) !== false
+                && (@rename($tmp, $dest) || (@unlink($dest) && @rename($tmp, $dest)))) {
+                @chmod($dest, 0644);
+                $stat['ok']++;
+            } else {
+                @unlink($tmp);
+                $writableDir = is_writable($dir) ? 'да' : 'нет';
+                $stat['failed'][$norm] = "нет прав на запись (каталог доступен для записи: $writableDir; владелец файла не позволяет перезапись)";
+                $log->error("Восстановление: не удалось записать $norm");
+            }
+        }
         $zip->close();
-        if ($ok) $log->info("Файлы восстановлены из $zipPath");
-        return $ok;
+
+        if (!$stat['failed']) {
+            $log->info("Файлы восстановлены из $zipPath ({$stat['ok']} шт.)");
+        } else {
+            $log->error("Восстановление из $zipPath: ok={$stat['ok']}, ошибок=" . count($stat['failed']));
+        }
+        return $stat;
     }
 
     private static function restoreDb(string $sqlPath, array $db, Logger $log): bool

@@ -53,11 +53,12 @@ class KeyVault
                 return false;
             }
         }
-        if (defined('OPENSSL_ALGO_ED25519') && function_exists('openssl_verify')) {
+        if (function_exists('openssl_verify')) {
             $b64 = chunk_split(base64_encode(hex2bin('302a300506032b6570032100') . $pk), 64, "\n");
             $pem = "-----BEGIN PUBLIC KEY-----\n" . $b64 . "-----END PUBLIC KEY-----\n";
             try {
-                return openssl_verify($msg, $sig, $pem, OPENSSL_ALGO_ED25519) === 1;
+                // 0 = NULL-digest: единственный корректный способ Ed25519 в openssl_verify
+                return openssl_verify($msg, $sig, $pem, 0) === 1;
             } catch (\Throwable $e) {
                 return false;
             }

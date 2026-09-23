@@ -83,6 +83,10 @@ switch ($action) {
         $c = new \AV\Controller\BaselineController();
         $c->index();
         break;
+    case 'audit':
+        $c = new \AV\Controller\AuditController();
+        $c->index();
+        break;
     case 'quarantine':
         $c = new \AV\Controller\QuarantineController();
         $c->index();

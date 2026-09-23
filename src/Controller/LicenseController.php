@@ -38,7 +38,7 @@ class LicenseController
         $content = ob_get_clean();
 
         ob_start();
-        View::render('layout', ['title' => 'Лицензия', 'active' => 'license', 'content' => $content]);
+        View::render('layout', ['title' => 'Лицензия', 'active' => 'license', 'content' => $content, 'pageCss' => ['license.css']]);
         echo ob_get_clean();
     }
 }

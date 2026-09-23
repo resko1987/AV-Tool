@@ -1,0 +1,22 @@
+/* license.css — стили страницы лицензии */
+.lic-key-input{
+    width:100%;
+    padding:14px 16px;
+    border-radius:9px;
+    border:1px solid var(--border2);
+    background:var(--bg2);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:13.5px;
+    line-height:1.6;
+    resize:vertical;
+    min-height:88px;
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+}
+.lic-key-input:focus{
+    border-color:var(--accent2);
+    box-shadow:0 0 0 3px rgba(47,155,224,.15);
+}
+.lic-key-input::placeholder{color:#5b6d80;font-family:var(--sans)}
+.lic-hint{color:var(--muted);font-size:12.5px;margin:8px 0 0}

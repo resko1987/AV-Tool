@@ -10,9 +10,20 @@ require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 use AV\Model\Config;
 use AV\Model\License;
+use AV\Model\Logger;
 use AV\Service\Auth;
+use AV\Service\Permissions;
 
 $config = Config::load();
+
+// Самоисправление прав на служебные каталоги/файлы (в т.ч. data/nginx.conf → 0640)
+Permissions::ensure($config);
+if (Permissions::actions()) {
+    $log = new Logger($config['logs']['dir'], $config['logs']['file'], $config['logs']['max_size'], $config['logs']['max_files']);
+    foreach (Permissions::actions() as $pAction) {
+        $log->info("Permissions: $pAction");
+    }
+}
 
 $action = $_GET['action'] ?? 'status';
 
@@ -64,6 +75,10 @@ switch ($action) {
         break;
     case 'baseline':
         $c = new \AV\Controller\BaselineController();
+        $c->index();
+        break;
+    case 'audit':
+        $c = new \AV\Controller\AuditController();
         $c->index();
         break;
     case 'quarantine':

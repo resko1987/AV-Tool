@@ -141,6 +141,9 @@ class Config
                 : [],
         ];
 
+        // Домен для привязки лицензионного ключа (CLI-запуски не знают HTTP_HOST)
+        $licenseDomain = self::env('AV_LICENSE_DOMAIN', '');
+
         $logs = [
             'dir' => $toolDir . '/logs',
             'file' => 'av.log',
@@ -173,6 +176,7 @@ class Config
             'max_scan_file_size'   => $maxScanFileSize,
             'mail'                 => $mail,
             'web'                  => $web,
+            'license_domain'       => $licenseDomain,
             'logs'                 => $logs,
             'min_free_space'       => $minFreeSpace,
         ];

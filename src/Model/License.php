@@ -7,9 +7,10 @@ namespace AV\Model;
  *
  * Ключ: AV1-<b64url(JSON payload)>.<b64url(Ed25519 sig)>, подпись выпускается
  * владельцем продукта (tools/make_license.php). Проверка полностью локальная:
- * подпись Ed25519 + срок действия. Подделать ключ без секретного ключа
- * владельца невозможно (криптография), а обход проверки в коде — уже вопрос
- * правки кода, что детектируется самим AV Tool (baseline целостности).
+ * подпись Ed25519 + срок действия + привязка к домену (поле "domains" в
+ * payload). Подделать ключ без секретного ключа владельца невозможно
+ * (криптография), а обход проверки в коде — уже вопрос правки кода, что
+ * детектируется самим AV Tool (baseline целостности).
  *
  * Защита от отката системных часов: временные метки запусков инструмента
  * накапливаются в data/ (максимальное наблюдённое время неуничтожимо без
@@ -31,8 +32,8 @@ class License
 
     /**
      * Статус лицензии.
-     * @return array{valid:bool,state:string,exp?:int,customer?:string,daysLeft?:int}
-     *         state: ok | missing | invalid | expired | tampered
+     * @return array{valid:bool,state:string,exp?:int,customer?:string,daysLeft?:int,domains?:array,host?:string}
+     *         state: ok | missing | invalid | expired | tampered | domain
      */
     public static function status(array $cfg): array
     {
@@ -74,6 +75,20 @@ class License
             return self::$cache = $out;
         }
 
+        // Привязка к домену: ключ без поля domains работает на любом сайте
+        // (обратная совместимость старых ключей), с полем — только на своих.
+        $domains = self::normalizeDomains($p['domains'] ?? null);
+        $host = self::currentHost($cfg);
+        if ($domains !== null && $host !== '') {
+            $out['domains'] = $domains;
+            $out['host'] = $host;
+            if (!self::hostMatches($host, $domains)) {
+                $out['exp'] = (int)$p['exp'];
+                $out['state'] = 'domain';
+                return self::$cache = $out;
+            }
+        }
+
         $now = self::now($cfg);
         $out['exp'] = (int)$p['exp'];
         $out['customer'] = (string)($p['customer'] ?? '');
@@ -106,6 +121,7 @@ class License
             'missing'   => 'лицензионный ключ не установлен',
             'invalid'   => 'лицензионный ключ некорректен',
             'tampered'  => 'лицензионный ключ подделан',
+            'domain'    => 'лицензия выдана для другого домена',
             'expired'   => 'срок лицензии истёк (до ' . date('d.m.Y', (int)($st['exp'] ?? 0)) . ')',
         ];
         throw new \RuntimeException('Функция недоступна: ' . ($map[$st['state']] ?? 'нет лицензии') . '.');
@@ -113,6 +129,7 @@ class License
 
     /**
      * Установка ключа: валидация и запись в data/license.dat (0640).
+     * Ключ, выпущенный для другого домена, не устанавливается.
      */
     public static function install(array $cfg, string $key): array
     {
@@ -127,10 +144,9 @@ class License
         }
         self::$cache = null;
         // Валидируем ключ ДО записи: подделка не должна попасть на диск.
-        $prev = is_file($tmp) ? (string)@file_get_contents($tmp) : '';
         // временно проверяем «виртуально»
-        if (!self::checkKeyString($key)) {
-            return [false, 'Ключ не прошёл проверку подписи или просрочен.'];
+        if (!self::checkKeyString($cfg, $key)) {
+            return [false, 'Ключ не прошёл проверку подписи, просрочен или выпущен для другого домена.'];
         }
         if (file_put_contents($tmp, $key, LOCK_EX) === false) {
             return [false, 'Не удалось записать файл лицензии.'];
@@ -140,7 +156,7 @@ class License
     }
 
     /** Проверка строки ключа без записи на диск. */
-    private static function checkKeyString(string $key): bool
+    private static function checkKeyString(array $cfg, string $key): bool
     {
         if (!preg_match('/^AV1-([A-Za-z0-9_\-=]+)\.([A-Za-z0-9_\-=]+)$/', $key, $m)) return false;
         $json = self::b64urlDecode($m[1]);
@@ -149,7 +165,70 @@ class License
         if (!KeyVault::verify($json, $sig)) return false;
         $p = json_decode($json, true);
         if (!is_array($p) || !isset($p['exp']) || (int)$p['exp'] <= time()) return false;
+        // Домен из ключа должен совпадать с текущим (если задан).
+        $domains = self::normalizeDomains($p['domains'] ?? null);
+        $host = self::currentHost($cfg);
+        if ($domains !== null && $host !== '' && !self::hostMatches($host, $domains)) return false;
         return true;
+    }
+
+    /**
+     * Домены из payload ключа: null = ключ без привязки (обратная
+     * совместимость), массив — нормализованные имена в нижнем регистре.
+     * @return array|null
+     */
+    private static function normalizeDomains($raw): ?array
+    {
+        if ($raw === null) return null;
+        if (is_string($raw)) $raw = [$raw];
+        if (!is_array($raw)) return [];
+        $out = [];
+        foreach ($raw as $d) {
+            $d = mb_strtolower(trim((string)$d), 'UTF-8');
+            // срезаем схему, порт, литеральный www (остальные поддомены
+            // покрываются hostMatches — им срезание первой метки запрещено,
+            // иначе example.com превратился бы в com)
+            $d = preg_replace('~^[a-z][a-z0-9+.-]*://~', '', $d);
+            $d = preg_replace('~[/:].*$~', '', $d);
+            $d = preg_replace('~^www\.~', '', $d);
+            $d = preg_replace('~[^\p{L}\p{N}.-]~u', '', $d);
+            $d = trim($d, '.-');
+            if ($d !== '') $out[] = $d;
+        }
+        return $out === [] ? [] : array_values(array_unique($out));
+    }
+
+    /**
+     * Текущий домен: из конфига (AV_LICENSE_DOMAIN), иначе HTTP_HOST /
+     * SERVER_NAME (веб). Пустая строка — не удалось определить (CLI без
+     * конфига) → привязанный ключ считается непрошедшим проверку.
+     */
+    private static function currentHost(array $cfg): string
+    {
+        $configured = (string)($cfg['license_domain'] ?? '');
+        if ($configured !== '') {
+            $configured = mb_strtolower(trim($configured), 'UTF-8');
+            $configured = preg_replace('~^[a-z][a-z0-9+.-]*://~', '', $configured);
+            $configured = preg_replace('~[/:].*$~', '', $configured);
+            return preg_replace('~^www\.~', '', $configured);
+        }
+        $host = '';
+        if (PHP_SAPI !== 'cli') {
+            $host = (string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+        }
+        $host = mb_strtolower(trim(preg_replace('~[/:].*$~', '', $host)), 'UTF-8');
+        return preg_replace('~^www\.~', '', $host);
+    }
+
+    /** Совпадает ли хост с одним из доменов ключа (с учётом www и поддоменов). */
+    private static function hostMatches(string $host, array $domains): bool
+    {
+        foreach ($domains as $d) {
+            if ($host === $d) return true;
+            // поддомен лицензированного домена: sub.example.com под example.com
+            if (str_ends_with($host, '.' . $d)) return true;
+        }
+        return false;
     }
 
     /**

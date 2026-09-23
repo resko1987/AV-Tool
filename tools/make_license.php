@@ -8,16 +8,19 @@ declare(strict_types=1);
  * любой сможет выпустить себе вечную лицензию.
  *
  * Использование:
- *   php tools/make_license.php --issue --customer="Иван" --days=365
+ *   php tools/make_license.php --issue --customer="Иван" --days=365 --domain=example.com
+ *   php tools/make_license.php --issue --customer="Иван" --days=365 --domain=site1.ru,site2.ru
+ *   php tools/make_license.php --issue --customer="Иван" --days=365   (без привязки к домену)
  *   php tools/make_license.php --keygen
  *   php tools/make_license.php --check="AV1-XXXX..."   (локальная проверка ключа)
  *
  * Формат ключа:
  *   AV1-<base64url(payload)>.<base64url(Ed25519 signature)>
- *   payload = JSON {"v":1,"iat":...,"exp":...,"customer":"..."}
+ *   payload = JSON {"v":1,"iat":...,"exp":...,"customer":"...","domains":["example.com"]}
  *
  * Ключ проверяется офлайн: подпись Ed25519 публичным ключом (embedded в
- * продукте), затем сравнение exp с текущим временем. Сервер не нужен.
+ * продукте), затем сравнение exp с текущим временем и (если задано поле
+ * domains) совпадение домена сайта. Сервер не нужен.
  */
 
 if (PHP_SAPI !== 'cli') {
@@ -78,10 +81,29 @@ if ($cmd === '--issue') {
         'exp'      => time() + $days * 86400,
         'customer' => (string)($opts['customer'] ?? 'site'),
     ];
+    // Привязка к домену (опционально): список через запятую. Домены
+    // нормализуются так же, как в License::normalizeDomains() продукта:
+    // срезается схема, www и порт. Отсутствие --domain = ключ без привязки
+    // (обратная совместимость уже выпущенных лицензий).
+    if (!empty($opts['domain'])) {
+        $domains = [];
+        foreach (explode(',', (string)$opts['domain']) as $d) {
+            $d = mb_strtolower(trim($d), 'UTF-8');
+            $d = preg_replace('~^[a-z][a-z0-9+.-]*://~', '', $d);
+            $d = preg_replace('~[/:].*$~', '', $d);
+            $d = preg_replace('~^www\.~', '', $d);
+            $d = preg_replace('~[^\p{L}\p{N}.-]~u', '', $d);
+            $d = trim($d, '.-');
+            if ($d !== '') $domains[] = $d;
+        }
+        if ($domains) $payload['domains'] = array_values(array_unique($domains));
+    }
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
     $sig = sodium_crypto_sign_detached($json, $secret);
     $key = 'AV1-' . b64url_encode($json) . '.' . b64url_encode($sig);
-    echo "Лицензия на {$days} дней (до " . date('d.m.Y', $payload['exp']) . "):\n$key\n";
+    echo "Лицензия на {$days} дней (до " . date('d.m.Y', $payload['exp']) . "):"
+        . (empty($payload['domains']) ? '' : "\nДомены: " . implode(', ', $payload['domains']))
+        . "\n$key\n";
     exit(0);
 }
 
@@ -108,10 +130,12 @@ if ($cmd === '--check' && isset($args[1])) {
     }
     $p = json_decode($json, true);
     $left = (int)$p['exp'] - time();
-    echo "Подпись верна.\nКлиент: {$p['customer']}\nИстекает: " . date('d.m.Y H:i', (int)$p['exp']) .
-         ($left > 0 ? " (осталось " . (int)($left / 86400) . " дн)\n" : " (ИСТЕКЛА)\n");
+    echo "Подпись верна.\nКлиент: {$p['customer']}\nДомены: "
+        . (empty($p['domains']) ? '(без привязки — любой сайт)' : implode(', ', $p['domains']))
+        . "\nИстекает: " . date('d.m.Y H:i', (int)$p['exp']) .
+          ($left > 0 ? " (осталось " . (int)($left / 86400) . " дн)\n" : " (ИСТЕКЛА)\n");
     exit(0);
 }
 
-echo "Использование:\n  php tools/make_license.php --keygen\n  php tools/make_license.php --issue --customer=\"Имя\" --days=365\n  php tools/make_license.php --check AV1-...\n";
+echo "Использование:\n  php tools/make_license.php --keygen\n  php tools/make_license.php --issue --customer=\"Имя\" --days=365 [--domain=example.com|a.com,b.com]\n  php tools/make_license.php --check AV1-...\n";
 exit(0);

@@ -11,7 +11,7 @@ $pageCss = $pageCss ?? [];
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <title><?= AV\e($title) ?> — AV Tool</title>
-<link rel="stylesheet" href="assets/av_ui.css?v=5">
+<link rel="stylesheet" href="assets/av_ui.css?v=7">
 <?php foreach ($pageCss as $css): ?>
 <link rel="stylesheet" href="assets/<?= AV\e($css) ?>?v=1">
 <?php endforeach; ?>
@@ -30,6 +30,7 @@ $pageCss = $pageCss ?? [];
 <a href="av.php?action=scan"<?= $active === 'scan' ? " class='on'" : '' ?>>Скан</a>
 <a href="av.php?action=fullscan"<?= $active === 'fullscan' ? " class='on'" : '' ?>>Полный скан</a>
 <a href="av.php?action=baseline"<?= $active === 'baseline' ? " class='on'" : '' ?>>Baseline</a>
+<a href="av.php?action=audit"<?= $active === 'audit' ? " class='on'" : '' ?>>Аудит сервера</a>
 <a href="av.php?action=quarantine"<?= $active === 'quarantine' ? " class='on'" : '' ?>>Карантин</a>
 <a href="av.php?action=whitelist"<?= $active === 'whitelist' ? " class='on'" : '' ?>>Исключения</a>
 <a href="av.php?action=restore"<?= $active === 'restore' ? " class='on'" : '' ?>>Восстановление</a>
