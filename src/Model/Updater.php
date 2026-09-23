@@ -249,7 +249,12 @@ class Updater
 
     private function unpack(string $zipPath): string
     {
-        $tmp = sys_get_temp_dir() . '/av_upd_x_' . bin2hex(random_bytes(6));
+        // Распаковку держим ВНУТРИ data/ — на хостингах с open_basedir системный
+        // /tmp часто вне разрешённых путей, а data/ (как и каталог инструмента)
+        // в разрешённые входит всегда.
+        $base = rtrim($this->cfg['data_dir'], '/\\') . '/update_tmp';
+        if (!is_dir($base)) mkdir($base, 0750, true);
+        $tmp = $base . '/av_upd_x_' . bin2hex(random_bytes(6));
         mkdir($tmp, 0750, true);
         $zip = new ZipArchive();
         $ok = $zip->open($zipPath);

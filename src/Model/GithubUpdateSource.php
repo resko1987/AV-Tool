@@ -51,9 +51,40 @@ class GithubUpdateSource implements UpdateSource
             throw new RuntimeException('Некорректный URL архива обновления.');
         }
         $body = $this->http($url, true);
-        $tmp = tempnam(sys_get_temp_dir(), 'av_upd_');
-        if ($tmp === false || file_put_contents($tmp, $body) === false) {
-            throw new RuntimeException('Не удалось сохранить архив обновления во временный файл.');
+
+        // Временный файл: системный tmp → upload_tmp_dir → data/ инструмента.
+        // Sys temp на shared-хостинге часто вне open_basedir или не существует —
+        // тогда tempnam() молча возвращает false. data/ приложение уже использует
+        // для записей (baseline.json и пр.), поэтому он гарантированно writable.
+        $dir = '';
+        $reasons = [];
+        $tmp = false;
+        foreach ($this->tempDirs() as $d) {
+            if (!is_dir($d)) { $reasons[] = "каталог '$d' не существует"; continue; }
+            if (!is_writable($d)) { $reasons[] = "нет прав на запись в '$d'"; continue; }
+            $tmp = @tempnam($d, 'av_upd_');
+            if ($tmp === false) {
+                $reasons[] = "tempnam() не смог создать файл в '$d' (возможно, $d запрещён open_basedir)";
+                continue;
+            }
+            $dir = $d;
+            break;
+        }
+        if ($tmp === false || $dir === '') {
+            throw new RuntimeException(
+                'Не удалось сохранить архив обновления во временный файл — ни один каталог не подошёл: '
+                . implode('; ', $reasons) . '.'
+            );
+        }
+        if (@file_put_contents($tmp, $body) === false) {
+            $free = @disk_free_space($dir);
+            @unlink($tmp);
+            throw new RuntimeException(
+                'Не удалось записать архив обновления во временный файл: ' . $tmp
+                . '. Свободное место на диске: '
+                . ($free === false ? 'не удалось определить' : self::humanSize($free))
+                . '. Причины: исчерпано место/квота диска либо нет прав на запись.'
+            );
         }
         if (function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -61,10 +92,34 @@ class GithubUpdateSource implements UpdateSource
             if ($finfo) finfo_close($finfo);
             if ($mime !== '' && $mime !== 'application/zip' && $mime !== 'application/x-zip') {
                 @unlink($tmp);
-                throw new RuntimeException("Скачанный файл не zip-архив (mime: $mime). Проверьте токен GitHub.");
+                throw new RuntimeException("Скачанный файл не zip-архив (mime: $mime). Проверьте прикреплённый к релизу файл.");
             }
         }
         return $tmp;
+    }
+
+    /** Кандидаты каталогов для временного файла (в порядке приоритета). */
+    private function tempDirs(): array
+    {
+        $dirs = [];
+        // data/ инструмента — первый кандидат: на хостингах с open_basedir системный
+        // /tmp часто запрещён, а data/ всегда в разрешённых путях (туда пишутся
+        // baseline.json и т.д. той же учёткой PHP).
+        $data = dirname(__DIR__, 2) . '/data';
+        if (!is_dir($data)) @mkdir($data, 0750, true);
+        $dirs[] = $data;
+        $sys = sys_get_temp_dir();
+        if ($sys !== '') $dirs[] = $sys;
+        $ini = ini_get('upload_tmp_dir');
+        if (is_string($ini) && $ini !== '') $dirs[] = $ini;
+        return $dirs;
+    }
+
+    private static function humanSize(int $bytes): string
+    {
+        if ($bytes >= 1073741824) return round($bytes / 1073741824, 1) . ' ГБ';
+        if ($bytes >= 1048576) return round($bytes / 1048576, 1) . ' МБ';
+        return round($bytes / 1024) . ' КБ';
     }
 
     // ------------------- источники версий -------------------
