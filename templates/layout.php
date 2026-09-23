@@ -35,10 +35,10 @@ $pageCss = $pageCss ?? [];
 <a href="av.php?action=whitelist"<?= $active === 'whitelist' ? " class='on'" : '' ?>>Исключения</a>
 <a href="av.php?action=restore"<?= $active === 'restore' ? " class='on'" : '' ?>>Восстановление</a>
 <span class="av-nav-spacer"></span>
-<a class="alt" href="av.php?action=settings"<?= $active === 'settings' ? " class='on alt'" : ' alt' ?>>Настройки</a>
-<a class="alt" href="av.php?action=license"<?= $active === 'license' ? " class='on alt'" : ' alt' ?>>Лицензия</a>
-<a class="alt" href="av.php?action=update"<?= $active === 'update' ? " class='on alt'" : ' alt' ?>>Обновление</a>
-<a class="alt" href="av.php?action=docs"<?= $active === 'docs' ? " class='on alt'" : ' alt' ?>>Документация</a>
+<a class="<?= $active === 'settings' ? 'on alt' : 'alt' ?>" href="av.php?action=settings">Настройки</a>
+<a class="<?= $active === 'license' ? 'on alt' : 'alt' ?>" href="av.php?action=license">Лицензия</a>
+<a class="<?= $active === 'update' ? 'on alt' : 'alt' ?>" href="av.php?action=update">Обновление</a>
+<a class="<?= $active === 'docs' ? 'on alt' : 'alt' ?>" href="av.php?action=docs">Документация</a>
 </nav></div>
 <div class="av-wrap">
 
