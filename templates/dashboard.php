@@ -27,7 +27,15 @@ $agoScan = $data['agoScan'] ?? 'никогда';
 </div>
 
 <div class="av-cards">
-<div class="av-card"><div class="k">База данных</div><div class="v <?= $dbState['ok'] ? 'ok' : 'err' ?>"><?= $dbState['ok'] ? 'Доступна' : 'Ошибка' ?></div><div class="k" style="margin-top:6px;text-transform:none;letter-spacing:0"><?= AV\e($dbState['ok'] ? $dbState['msg'] : $dbState['msg']) ?></div></div>
+<div class="av-card"><div class="k">База данных</div>
+    <?php if (!($dbState['configured'] ?? false)): ?>
+    <div class="v">Не настроена</div>
+    <div class="k" style="margin-top:6px;text-transform:none;letter-spacing:0">база настраивается в .env файле</div>
+    <?php else: ?>
+    <div class="v <?= $dbState['ok'] ? 'ok' : 'err' ?>"><?= $dbState['ok'] ? 'Доступна' : 'Ошибка' ?></div>
+    <div class="k" style="margin-top:6px;text-transform:none;letter-spacing:0"><?= AV\e($dbState['msg']) ?></div>
+    <?php endif; ?>
+</div>
 </div>
 
 <div class="av-cards">

@@ -144,6 +144,14 @@ class Config
         // Домен для привязки лицензионного ключа (CLI-запуски не знают HTTP_HOST)
         $licenseDomain = self::env('AV_LICENSE_DOMAIN', '');
 
+        // Обновления программы из GitHub. Версия клиента = файл VERSION (цифры, напр. «1.0»);
+        // точка обновления = имя архива release-<N.N>.zip из релиза (цифры в имени = версия),
+        // fallback — теги / sha последнего коммита ветки.
+        $update = [
+            'repo'    => self::env('AV_UPDATE_REPO', 'resko1987/AV-Tool'),
+            'branch'  => self::env('AV_UPDATE_BRANCH', 'main'),
+        ];
+
         $logs = [
             'dir' => $toolDir . '/logs',
             'file' => 'av.log',
@@ -177,6 +185,7 @@ class Config
             'mail'                 => $mail,
             'web'                  => $web,
             'license_domain'       => $licenseDomain,
+            'update'               => $update,
             'logs'                 => $logs,
             'min_free_space'       => $minFreeSpace,
         ];

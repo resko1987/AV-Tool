@@ -29,18 +29,27 @@ class DashboardController
         $hasBase = $integrity->hasBaseline();
         $autoRestore = $CFG['auto_restore'];
 
-        // DB check
-        $dbState = ['ok' => false, 'msg' => ''];
-        try {
-            $pdo = new \PDO(
-                "mysql:host={$CFG['db']['host']};port=" . (int)$CFG['db']['port'] . ";dbname={$CFG['db']['name']};charset=utf8mb4",
-                $CFG['db']['user'], $CFG['db']['password'],
-                [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, \PDO::ATTR_TIMEOUT => 3]
-            );
-            $tables = (int)$pdo->query("SHOW TABLES")->rowCount();
-            $dbState = ['ok' => true, 'msg' => "{$CFG['db']['name']} ({$tables} таблиц)"];
-        } catch (\Throwable $e) {
-            $dbState = ['ok' => false, 'msg' => $e->getMessage()];
+        // DB check. Если БД не настроена (пустые AV_DB_NAME/AV_DB_USER) — не пытаемся
+        // подключаться (на серверах без БД это нормально), а честно пишем «не настроена».
+        $dbState = ['ok' => false, 'msg' => '', 'configured' => false];
+        $dbConfigured = trim((string)($CFG['db']['name'] ?? '')) !== ''
+            && trim((string)($CFG['db']['user'] ?? '')) !== '';
+        if (!$dbConfigured) {
+            $dbState['msg'] = 'База данных не настроена — на серверах без БД это нормально';
+        } else {
+            $dbState['configured'] = true;
+            try {
+                $pdo = new \PDO(
+                    "mysql:host={$CFG['db']['host']};port=" . (int)$CFG['db']['port'] . ";dbname={$CFG['db']['name']};charset=utf8mb4",
+                    $CFG['db']['user'], $CFG['db']['password'],
+                    [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION, \PDO::ATTR_TIMEOUT => 3]
+                );
+                $tables = (int)$pdo->query("SHOW TABLES")->rowCount();
+                $dbState['ok'] = true;
+                $dbState['msg'] = "{$CFG['db']['name']} ({$tables} таблиц)";
+            } catch (\Throwable $e) {
+                $dbState['msg'] = $e->getMessage();
+            }
         }
 
         // Cron activity: последний запуск бэкапа = запись "Бэкап создан" в av.log

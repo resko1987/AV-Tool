@@ -24,3 +24,5 @@ quarantine/
 
 # Зависимости composer
 vendor/
+# Локальные релиз-архивы (tools/make_release.sh)
+release-*.zip

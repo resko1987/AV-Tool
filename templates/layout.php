@@ -37,6 +37,7 @@ $pageCss = $pageCss ?? [];
 <span class="av-nav-spacer"></span>
 <a class="alt" href="av.php?action=settings"<?= $active === 'settings' ? " class='on alt'" : ' alt' ?>>Настройки</a>
 <a class="alt" href="av.php?action=license"<?= $active === 'license' ? " class='on alt'" : ' alt' ?>>Лицензия</a>
+<a class="alt" href="av.php?action=update"<?= $active === 'update' ? " class='on alt'" : ' alt' ?>>Обновление</a>
 <a class="alt" href="av.php?action=docs"<?= $active === 'docs' ? " class='on alt'" : ' alt' ?>>Документация</a>
 </nav></div>
 <div class="av-wrap">

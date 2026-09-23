@@ -10,6 +10,7 @@ use AV\Model\Quarantine;
 use AV\Model\Integrity;
 use AV\Model\License;
 use AV\Model\Scanner;
+use AV\Model\Updater;
 use AV\Service\Permissions;
 
 class Kernel
@@ -58,6 +59,45 @@ class Kernel
             return 0;
         }
 
+        if ($args['update'] !== false) {
+            $updater = new Updater($CFG, $log);
+            try {
+                // --update без тега: показать статус
+                if ($args['update'] === '') {
+                    $c = $updater->check();
+                    $this->echo("Текущая версия: {$c['current']}", 'cyan');
+                    if ($c['latest'] === null) {
+                        $this->echo('Релизов/коммитов не найдено.', 'yellow');
+                        return 0;
+                    }
+                    $this->echo('Последняя на GitHub: ' . $c['latest']['tag'] . ($c['latest']['name'] !== $c['latest']['tag'] ? " ({$c['latest']['name']})" : ''), 'cyan');
+                    if ($c['updateAvailable']) {
+                        $this->echo('Доступно обновление! Установить: php av.php --update=' . $c['latest']['tag'], 'yellow');
+                    } else {
+                        $this->echo('Установлена актуальная версия.', 'green');
+                    }
+                    return 0;
+                }
+                // --update=<tag>|latest: установить
+                $tag = $args['update'] === 'latest'
+                    ? (string)($updater->check()['latest']['tag'] ?? '')
+                    : $args['update'];
+                if ($tag === '') {
+                    $this->echo('Не найдено ни одного релиза/коммита в GitHub.', 'red');
+                    return 1;
+                }
+                $this->echo("Установка обновления $tag ...", 'cyan');
+                $res = $updater->apply($tag);
+                foreach ($res['steps'] as $s) $this->echo('  ' . $s);
+                $this->echo('Обновление завершено: ' . $res['to'], 'green');
+                return 0;
+            } catch (\Throwable $e) {
+                $this->echo('Ошибка обновления: ' . $e->getMessage(), 'red');
+                $log->error('Update CLI: ' . $e->getMessage());
+                return 1;
+            }
+        }
+
         if ($args['backup']) {
             $backup->run(true);
             return 0;
@@ -102,7 +142,7 @@ class Kernel
 
     private function parseArgs(array $argv): array
     {
-        $opts = ['backup' => false, 'scan' => false, 'full-scan' => false, 'baseline' => false, 'no-restore' => false, 'scan-list' => null];
+        $opts = ['backup' => false, 'scan' => false, 'full-scan' => false, 'baseline' => false, 'no-restore' => false, 'scan-list' => null, 'update' => false];
         for ($i = 1; $i < count($argv); $i++) {
             $a = $argv[$i];
             if ($a === '--backup') $opts['backup'] = true;
@@ -110,6 +150,8 @@ class Kernel
             elseif ($a === '--full-scan') $opts['full-scan'] = true;
             elseif ($a === '--baseline') $opts['baseline'] = true;
             elseif ($a === '--no-restore') $opts['no-restore'] = true;
+            elseif ($a === '--update') $opts['update'] = '';            // статус
+            elseif (strpos($a, '--update=') === 0) $opts['update'] = substr($a, strlen('--update='));
             elseif (strpos($a, '--scan-list=') === 0) $opts['scan-list'] = substr($a, strlen('--scan-list='));
         }
         return $opts;

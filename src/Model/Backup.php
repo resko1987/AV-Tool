@@ -86,6 +86,10 @@ class Backup
     private function backupDatabase(string $sqlPath): bool
     {
         $db = $this->cfg['db'];
+        if (trim((string)($db['name'] ?? '')) === '' || trim((string)($db['user'] ?? '')) === '') {
+            $this->log->info("БД не настроена - дамп пропущен");
+            return true;
+        }
         if (!empty($db['mysqldump']) && is_executable($db['mysqldump'])) {
             $cmd = escapeshellcmd($db['mysqldump']) .
                 ' --host=' . escapeshellarg($db['host']) .

@@ -89,6 +89,10 @@ switch ($action) {
         $c = new \AV\Controller\RestoreController();
         $c->index();
         break;
+    case 'update':
+        $c = new \AV\Controller\UpdateController();
+        $c->index();
+        break;
     case 'settings':
         $c = new \AV\Controller\SettingsController();
         $c->index();

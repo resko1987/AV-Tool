@@ -30,6 +30,7 @@ class Permissions
         // --- Каталоги ---
         $dirs = array_filter([
             $cfg['data_dir'] ?? '',
+            rtrim($cfg['data_dir'] ?? '', '/\\') . '/update_backup',
             $cfg['logs']['dir'] ?? '',
             $cfg['quarantine_dir'] ?? '',
             $cfg['backup_dir'] ?? '',
