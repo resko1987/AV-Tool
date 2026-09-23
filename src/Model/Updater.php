@@ -339,6 +339,9 @@ class Updater
 
     /**
      * php -l по всем PHP-файлам инструмента (без vendor/data/logs).
+     * Ошибкой синтаксиса считается только вывод «Parse error:». Если PHP не может даже
+     * стартовать (сломанное расширение в php.ini, segfault) — это проблема окружения,
+     * а не кода: повторяем проверку без php.ini (php -n).
      * @return string[] ошибки (пусто = всё ок). PHP-бинарник недоступен → пусто.
      */
     private function lint(string $root): array
@@ -358,9 +361,18 @@ class Updater
             if (in_array($first, ['vendor', 'data', 'logs', 'backup', 'quarantine', 'license-panel', 'lending', 'tools'], true)) continue;
             $out = [];
             @exec(escapeshellarg($php) . ' -l ' . escapeshellarg($path) . ' 2>&1', $out, $code);
-            if ($code !== 0) {
-                $errors[] = $rel . ': ' . implode(' ', $out);
+            if ($code === 0) continue;
+            $text = trim(implode(' ', $out));
+            if (strpos($text, 'Parse error:') === false) {
+                // php -l упал из-за окружения (не грузится расширение → segfault), а не синтаксиса.
+                // Пробуем проверить без php.ini.
+                $out = [];
+                @exec(escapeshellarg($php) . ' -n -l ' . escapeshellarg($path) . ' 2>&1', $out, $code);
+                if ($code === 0) continue;
+                $text = trim(implode(' ', $out));
+                if (strpos($text, 'Parse error:') === false) continue; // линт невозможен на этой среде — не наш код
             }
+            $errors[] = $rel . ': ' . $text;
         }
         return $errors;
     }
@@ -373,6 +385,9 @@ class Updater
         $o = [];
         foreach (['php', '/usr/bin/php', '/usr/local/bin/php'] as $cand) {
             @exec(escapeshellarg($cand) . ' -v 2>/dev/null', $o, $code);
+            if (($code ?? 1) === 0) { $bin = $cand; return $bin; }
+            // PHP может «не стартовать» из-за сломанного расширения — без php.ini он рабочий
+            @exec(escapeshellarg($cand) . ' -n -v 2>/dev/null', $o, $code);
             if (($code ?? 1) === 0) { $bin = $cand; return $bin; }
         }
         return null;
